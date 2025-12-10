@@ -192,16 +192,11 @@ import { onMounted, ref, computed } from 'vue';
 import * as Blockly from 'blockly';
 import * as En from 'blockly/msg/en';
 import 'blockly/blocks'; 
-
-// Importación unificada (Bloques + Generador)
 import ArduinoGenerator from '../arduino_core.js'; 
-
-// Logos
 import logo2 from '../../../../resources/logo_m4rk.webp';
 
 Blockly.setLocale(En);
 
-// Refs de UI/UX
 const blocklyDiv = ref(null);
 const generatedCode = ref("");
 const generatedXml = ref("");
@@ -212,9 +207,8 @@ const isInstalling = ref(false);
 const isRefreshing = ref(false); 
 const showOutput = ref(true); 
 const sketchName = ref("MiProyecto");
-const stars = ref([]); // Background stars
+const stars = ref([]); 
 
-// Refs de Hardware
 const rawPorts = ref([]); 
 const selectedPort = ref("");
 const allKnownBoards = ref([]); 
@@ -222,14 +216,11 @@ const selectedBoardFqbn = ref("arduino:avr:uno");
 
 let workspace = null;
 
-// --- COMPUTADA: FORMATO DE PUERTOS ROBUSTO ---
-// Esta versión busca el puerto aunque venga anidado (común en Arduino CLI nuevo)
 const availablePorts = computed(() => {
     if (!rawPorts.value || !Array.isArray(rawPorts.value)) return [];
 
     return rawPorts.value.map(p => {
         let portName = p.address;
-        // Fix para CLI modernos donde address está dentro de 'port'
         if (!portName && p.port && p.port.address) {
             portName = p.port.address;
         }
@@ -370,7 +361,6 @@ async function installAvrCore() {
   }
 }
 
-// Nueva funcionalidad traída del diseño Neumorphic
 async function openInArduino() {
   outputLog.value += "\nAbriendo en Arduino IDE nativo...";
   if(window.api) {
@@ -418,11 +408,10 @@ function clearWorkspace() {
     }
 }
 
-// TOOLBOX COMPLETO (Categorías del diseño Gris pero con colores Kids)
 const toolbox = {
   kind: 'categoryToolbox',
   contents: [
-    { kind: 'category', name: 'Variables', colour: '#a855f7', contents: [ // Purple
+    { kind: 'category', name: 'Variables', colour: '#a855f7', contents: [
       { kind: 'block', type: 'arduino_start' },
       { kind: 'button', text: 'Crear Variable', callbackKey: 'CREATE_VARIABLE' },
       { kind: 'block', type: 'variables_get' },
@@ -430,63 +419,63 @@ const toolbox = {
       { kind: 'block', type: 'variables_set_type' },
       { kind: 'block', type: 'type_cast' }
     ]},
-    { kind: 'category', name: 'Lógica', colour: '#3b82f6', contents: [ // Blue
+    { kind: 'category', name: 'Lógica', colour: '#3b82f6', contents: [
       { kind: 'block', type: 'controls_if' },
       { kind: 'block', type: 'logic_compare' },
       { kind: 'block', type: 'logic_operation' },
       { kind: 'block', type: 'logic_boolean' },
       { kind: 'block', type: 'logic_negate' },
-      { kind: 'block', type: 'logic_null' }, // Agregado
-      { kind: 'block', type: 'logic_ternary' } // Agregado
+      { kind: 'block', type: 'logic_null' },
+      { kind: 'block', type: 'logic_ternary' }
     ]},
-    { kind: 'category', name: 'Bucles', colour: '#10b981', contents: [ // Green
+    { kind: 'category', name: 'Bucles', colour: '#10b981', contents: [
       { kind: 'block', type: 'controls_repeat_ext', inputs: { TIMES: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
       { kind: 'block', type: 'controls_whileUntil' },
       { kind: 'block', type: 'controls_for', inputs: { FROM: { shadow: { type: 'math_number', fields: { NUM: 1 } } }, TO: { shadow: { type: 'math_number', fields: { NUM: 10 } } }, BY: { shadow: { type: 'math_number', fields: { NUM: 1 } } } } },
-      { kind: 'block', type: 'controls_flow_statements' } // Agregado
+      { kind: 'block', type: 'controls_flow_statements' }
     ]},
-    { kind: 'category', name: 'Matemáticas', colour: '#f59e0b', contents: [ // Amber
+    { kind: 'category', name: 'Matemáticas', colour: '#f59e0b', contents: [
       { kind: 'block', type: 'math_number' },
       { kind: 'block', type: 'math_arithmetic' },
       { kind: 'block', type: 'math_random_int' },
       { kind: 'block', type: 'math_map' },
-      { kind: 'block', type: 'math_single' }, // Agregado
-      { kind: 'block', type: 'math_constrain' } // Agregado
+      { kind: 'block', type: 'math_single' },
+      { kind: 'block', type: 'math_constrain' }
     ]},
-    { kind: 'category', name: 'Texto', colour: '#ec4899', contents: [ // Pink
+    { kind: 'category', name: 'Texto', colour: '#ec4899', contents: [
       { kind: 'block', type: 'text' },
       { kind: 'block', type: 'text_print' },
       { kind: 'block', type: 'text_join' },
-      { kind: 'block', type: 'text_length' } // Agregado
+      { kind: 'block', type: 'text_length' }
     ]},
     { kind: 'sep' },
-    { kind: 'category', name: 'Entrada/Salida', colour: '#6366f1', contents: [ // Indigo
+    { kind: 'category', name: 'Entrada/Salida', colour: '#6366f1', contents: [
       { kind: 'block', type: 'digital_write' },
       { kind: 'block', type: 'digital_read' },
       { kind: 'block', type: 'analog_read' },
       { kind: 'block', type: 'analog_write' },
       { kind: 'block', type: 'custom_delay' }
     ]},
-    { kind: 'category', name: 'Motores', colour: '#ef4444', contents: [ // Red
+    { kind: 'category', name: 'Motores', colour: '#ef4444', contents: [
       { kind: 'block', type: 'motor_setup' },
       { kind: 'block', type: 'motor_run' },
       { kind: 'block', type: 'motor_stop' }
     ]},
-    { kind: 'category', name: 'Pantallas (8x8)', colour: '#D35400', contents: [ // Dark Orange (Nuevo)
+    { kind: 'category', name: 'Pantallas (8x8)', colour: '#D35400', contents: [
       { kind: 'block', type: 'display_8x8_setup' },
       { kind: 'block', type: 'display_8x8_draw' }
     ]},
-    { kind: 'category', name: 'Sensores', colour: '#8b5cf6', contents: [ // Violet
+    { kind: 'category', name: 'Sensores', colour: '#8b5cf6', contents: [
       { kind: 'block', type: 'ultrasonic_read' },
       { kind: 'block', type: 'color_sensor_read' },
       { kind: 'block', type: 'sound_sensor_read' }
     ]},
-    { kind: 'category', name: 'Conexión', colour: '#06b6d4', contents: [ // Cyan
+    { kind: 'category', name: 'Conexión', colour: '#06b6d4', contents: [
       { kind: 'block', type: 'wifi_connect' },
-      { kind: 'block', type: 'wifi_is_connected' }, // Agregado
+      { kind: 'block', type: 'wifi_is_connected' },
       { kind: 'block', type: 'bluetooth_setup' },
       { kind: 'block', type: 'bluetooth_read_string' },
-      { kind: 'block', type: 'bluetooth_send_string' }, // Agregado
+      { kind: 'block', type: 'bluetooth_send_string' },
       { kind: 'block', type: 'rm_bluetooth_read' }
     ]}
   ]
@@ -514,7 +503,6 @@ function insertStartBlock() {
 }
 
 onMounted(async () => {
-    // Generar estrellas (Decoración Kids)
     stars.value = Array.from({ length: 25 }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
@@ -549,7 +537,6 @@ onMounted(async () => {
     workspace.addChangeListener(updateContent);
     window.addEventListener('resize', () => Blockly.svgResize(workspace));
     
-    // Pequeño delay para asegurar que el DOM está listo
     setTimeout(() => {
         insertStartBlock();
         Blockly.svgResize(workspace);
