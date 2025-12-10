@@ -1,16 +1,26 @@
 <template>
-  <div class="app-layout">
+  <div class="kids-layout">
     
-    <header class="top-bar">
-      <div class="logo-area">
-          <img :src="logo1" alt="Logo RM" class="app-logo" />
-          <span class="divider-logo">|</span>
-          <img :src="logo2" alt="Logo Mark" class="app-logo" />
+    <header class="top-bar-kids">
+      <div class="brand-area">
+          <div class="logo-container bouncy">
+            <img :src="logo1" alt="Logo RM" class="app-logo" />
+          </div>
+          <div class="project-title-wrapper">
+             <span class="label-tiny">MI PROYECTO:</span>
+             <input 
+                type="text" 
+                v-model="sketchName" 
+                class="kids-input-title" 
+                placeholder="¡Nombra tu invento!" 
+            />
+          </div>
       </div>
       
-      <div class="controls-wrapper">
-        <div class="hardware-controls neu-flat">
-            <select v-model="selectedBoardFqbn" class="hw-select neu-input" title="Seleccionar Placa">
+      <div class="hardware-island">
+        <div class="select-wrapper">
+            <span class="icon-label">🤖</span>
+            <select v-model="selectedBoardFqbn" class="kids-select" title="¿Qué cerebro usaremos?">
                 <option value="arduino:avr:uno">Arduino Uno</option>
                 <option value="arduino:avr:nano">Arduino Nano</option>
                 <option value="arduino:avr:mega">Arduino Mega</option>
@@ -21,122 +31,81 @@
                     {{ b.name }}
                 </option>
             </select>
+        </div>
 
-            <div class="port-selector">
-                <select 
-                    v-model="selectedPort" 
-                    class="hw-select port-select neu-input"
-                    :title="selectedPort ? 'Puerto Seleccionado: ' + selectedPort : 'Sin puerto'"
-                >
-                    <option value="" disabled>
-                      {{ availablePorts.length === 0 ? 'Sin Puertos' : 'Seleccionar Puerto' }}
-                    </option>
-                    <option v-for="p in availablePorts" :key="p.address" :value="p.address">
-                        {{ p.label }}
-                    </option>
-                </select>
+        <div class="select-wrapper">
+            <span class="icon-label">🔌</span>
+            <select v-model="selectedPort" class="kids-select port-select">
+                <option value="" disabled>
+                  {{ availablePorts.length === 0 ? '🚫 Sin conexión' : 'Seleccionar Cable' }}
+                </option>
+                <option v-for="p in availablePorts" :key="p.address" :value="p.address">
+                    {{ p.label }}
+                </option>
+            </select>
+            <button @click="refreshPorts" class="kids-btn-mini rotate-hover" title="Buscar">🔄</button>
+        </div>
+      </div>
 
-                <button @click="refreshPorts" class="icon-btn refresh-btn neu-btn-icon" title="Refrescar Puertos">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                    </svg>
-                </button>
+      <div class="big-actions">
+        <button class="kids-big-btn btn-blue" @click="verifyCode" :class="{ 'loading': isCompiling }">
+            <div class="btn-icon">
+                 <span v-if="!isCompiling">🔍</span>
+                 <span v-else class="spin">⚙️</span>
             </div>
-        </div>
-
-        <div class="sketch-name-container">
-            <input 
-                type="text" 
-                v-model="sketchName" 
-                class="sketch-name-input neu-inset" 
-                placeholder="NombreProyecto" 
-            />
-        </div>
-
-        <div class="actions-area">
-            <button class="action-btn neu-btn verify-btn" @click="verifyCode" :disabled="isCompiling" title="Verificar/Compilar">
-                <span v-if="isCompiling">
-                    <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                </span>
-                <span v-else>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                </span> 
-                <span class="btn-text">Verificar</span>
-            </button>
-            
-            <button class="action-btn neu-btn upload-btn" @click="uploadCode" :disabled="isUploading" title="Subir a Placa">
-                <span v-if="isUploading">
-                    <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                </span>
-                <span v-else>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                </span> 
-                <span class="btn-text">Subir</span>
-            </button>
-
-            <button class="action-btn neu-btn run-btn" @click="runSimulation" title="Ver Código Generado">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span class="btn-text">Código</span>
-            </button>
-
-            <div class="divider"></div>
-
-            <button class="action-btn secondary-btn neu-btn-icon" @click="installAvrCore" :disabled="isInstalling" title="Instalar Soporte Arduino Uno/Nano">
-                <span v-if="isInstalling">
-                    <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                </span>
-                <span v-else>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                </span>
-            </button>
-
-            <button class="action-btn secondary-btn neu-btn" @click="openInArduino" title="Abrir en IDE Nativo">
-                <span class="btn-text">IDE</span> 
-                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-            </button>
-            
-            <button class="action-btn secondary-btn neu-btn-icon" @click="saveSketch" title="Guardar Proyecto">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-            </button>
-            
-            <button class="action-btn secondary-btn neu-btn-icon" @click="loadSketch" title="Abrir Proyecto">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"></path></svg>
-            </button>
-            
-            <button class="action-btn delete-btn neu-btn-icon danger" @click="clearWorkspace" title="Limpiar">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-            </button>
-        </div>
+            <span class="btn-label">Revisar</span>
+        </button>
+        
+        <button class="kids-big-btn btn-green" @click="uploadCode" :class="{ 'loading': isUploading }">
+             <div class="btn-icon">
+                 <span v-if="!isUploading">🚀</span>
+                 <span v-else class="spin">🔥</span>
+            </div>
+            <span class="btn-label">¡Dar Vida!</span>
+        </button>
       </div>
     </header>
 
-    <main class="main-content">
-      <div ref="blocklyDiv" class="blockly-container neu-inset-large dot-grid-background"></div>
+    <main class="main-stage">
+      <div class="blockly-frame">
+          <div ref="blocklyDiv" class="blockly-canvas"></div>
+      </div>
 
-      <aside class="right-sidebar neu-flat">
-        <div class="tabs">
-            <button class="tab active">C++ Code</button>
-        </div>
+      <aside class="side-tools">
         
-        <div class="code-panel">
-            <textarea class="panel-content code-font neu-inset" readonly :value="generatedCode"></textarea>
+        <div class="code-preview-card">
+            <div class="card-header" @click="showOutput = !showOutput">
+                <span>💻 Modo Hacker</span>
+                <span class="arrow">{{ showOutput ? '▼' : '▶' }}</span>
+            </div>
+            <div v-show="showOutput" class="code-content">
+                 <textarea readonly :value="generatedCode"></textarea>
+            </div>
         </div>
 
-        <div class="output-panel neu-flat-top" :class="{ 'collapsed': !showOutput }">
-            <div class="panel-header" @click="showOutput = !showOutput">
-                <div class="header-title">
-                    <span class="toggle-icon">
-                        <svg v-if="showOutput" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-                    </span>
-                    <span>Output Console</span>
-                </div>
-                <button class="clear-console neu-btn-small" @click.stop="outputLog = ''">
-                    Limpiar
-                </button>
+        <div class="robot-assistant" :class="assistantMood">
+            <div class="robot-avatar">
+                <span v-if="assistantMood === 'happy'">🤖👍</span>
+                <span v-else-if="assistantMood === 'thinking'">🤔💭</span>
+                <span v-else-if="assistantMood === 'error'">😵💥</span>
+                <span v-else>🤖</span>
             </div>
-            <textarea v-show="showOutput" class="console-content neu-inset" readonly :value="outputLog"></textarea>
+            <div class="speech-bubble">
+                <p>{{ assistantMessage }}</p>
+            </div>
         </div>
+
+        <div class="extra-actions-grid">
+            <button class="kids-tool-btn btn-yellow" @click="saveSketch" title="Guardar">💾</button>
+            <button class="kids-tool-btn btn-purple" @click="loadSketch" title="Abrir">📂</button>
+            <button class="kids-tool-btn btn-orange" @click="openInArduino" title="IDE Pro">🛠️</button>
+            <button class="kids-tool-btn btn-red" @click="installAvrCore" :disabled="isInstalling" title="Instalar Soporte">
+                <span v-if="isInstalling" class="spin">⏳</span>
+                <span v-else>📦</span>
+            </button>
+            <button class="kids-tool-btn btn-danger-zone" @click="clearWorkspace" title="Borrar Todo">🗑️</button>
+        </div>
+
       </aside>
     </main>
   </div>
@@ -155,24 +124,37 @@ import ArduinoGenerator from '../arduino_core.js';
 import logo2 from '../../../../resources/logo_m4rk.webp'; 
 import logo1 from '../../../../resources/logo_RM.png';
 
+// --- NUEVO: SONIDOS (Ruta corregida: subimos 2 niveles para llegar a public) ---
+import clickSound from '../../public/media/click.mp3';
+import deleteSound from '../../public/media/delete.mp3';
+
 Blockly.setLocale(En);
 
 // Refs de UI
 const blocklyDiv = ref(null);
 const generatedCode = ref("");
 const generatedXml = ref("");
+// outputLog se mantiene internamente pero visualmente usamos el Asistente
 const outputLog = ref("Bienvenido a MarkRobot IDE.\nSelecciona una placa y puerto para comenzar.");
 const isCompiling = ref(false);
 const isUploading = ref(false);
 const isInstalling = ref(false);
-const showOutput = ref(true); 
-const sketchName = ref("MySketch");
+const showOutput = ref(false); // Por defecto cerrado para niños
+const sketchName = ref("MiInvento");
 
 // Refs de Hardware
 const rawPorts = ref([]); 
 const selectedPort = ref("");
 const allKnownBoards = ref([]); 
 const selectedBoardFqbn = ref("arduino:avr:uno"); 
+
+// Refs de "Gamificación" (Robot)
+const assistantMessage = ref("¡Hola! Soy Mark. ¡Arrastra bloques para empezar!");
+const assistantMood = ref("normal"); // normal, happy, thinking, error
+
+// Audio Players
+const audioClick = new Audio(clickSound);
+const audioDelete = new Audio(deleteSound);
 
 let workspace = null;
 
@@ -194,9 +176,17 @@ const availablePorts = computed(() => {
     }).filter(p => p !== null); 
 });
 
+// Helper para controlar al robot
+function setRobotStatus(msg, mood = 'normal') {
+    assistantMessage.value = msg;
+    assistantMood.value = mood;
+    // También guardamos en el log técnico por si acaso
+    outputLog.value += `\n[ROBOT]: ${msg}`;
+}
+
 async function refreshPorts() {
   if (!window.api) return;
-  outputLog.value += "\nBuscando puertos...";
+  setRobotStatus("Buscando cables conectados...", "thinking");
   
   try {
     const ports = await window.api.listBoards(); 
@@ -207,14 +197,15 @@ async function refreshPorts() {
             if (!selectedPort.value) {
                 selectedPort.value = availablePorts.value[0].address;
             }
-            outputLog.value += `\nEncontrados: ${availablePorts.value.length}`;
+            setRobotStatus(`¡Encontré ${availablePorts.value.length} placa(s)! Listo.`, "happy");
         } else {
-            outputLog.value += "\nNo se encontraron puertos (verifica drivers/cable).";
+            setRobotStatus("No veo ninguna placa. ¿Conectaste el USB?", "normal");
         }
-    }, 50);
+    }, 500);
     
   } catch (e) {
-    outputLog.value += `\nError al listar puertos: ${e.message}`;
+    setRobotStatus("Error al buscar puertos.", "error");
+    outputLog.value += `\nError: ${e.message}`;
   }
 }
 
@@ -223,8 +214,7 @@ async function verifyCode() {
   if (!window.api) { alert("Backend no conectado"); return; }
 
   isCompiling.value = true;
-  showOutput.value = true;
-  outputLog.value = "Iniciando compilación...\n";
+  setRobotStatus("Leyendo tus instrucciones...", "thinking");
   updateContent(); 
 
   try {
@@ -234,8 +224,14 @@ async function verifyCode() {
       sketchName: sketchName.value || 'Sketch'
     });
     outputLog.value += res.log;
-    if (res.success) outputLog.value += "\n✅ VERIFICADO CORRECTAMENTE.";
+    
+    if (res.success) {
+        setRobotStatus("¡Código perfecto! Todo se ve bien.", "happy");
+    } else {
+        setRobotStatus("¡Ups! Algo está mal conectado en los bloques.", "error");
+    }
   } catch (e) {
+    setRobotStatus("Error grave del sistema.", "error");
     outputLog.value += "\nError crítico: " + e.message;
   } finally {
     isCompiling.value = false;
@@ -247,13 +243,13 @@ async function uploadCode() {
   if (!window.api) { alert("Backend no conectado"); return; }
   
   if (!selectedPort.value) {
+    setRobotStatus("¡Espera! Necesito saber el PUERTO USB.", "error");
     alert("Por favor selecciona un PUERTO primero.");
     return;
   }
   
   isUploading.value = true;
-  showOutput.value = true;
-  outputLog.value = `Iniciando subida a ${selectedPort.value}...\n`;
+  setRobotStatus("¡Enviando poderes a la placa! ⚡", "thinking");
   updateContent();
   
   try {
@@ -264,12 +260,13 @@ async function uploadCode() {
     });
     
     if (!compileRes.success) {
-      outputLog.value += compileRes.log + "\n⚠️ Subida cancelada por error de compilación.";
+      outputLog.value += compileRes.log;
+      setRobotStatus("No puedo subirlo, hay errores en los bloques.", "error");
       isUploading.value = false;
       return;
     }
 
-    outputLog.value += "\nCompilación OK. Subiendo...\n";
+    setRobotStatus("Compilado OK. Subiendo...", "thinking");
     
     const uploadRes = await window.api.upload({
       port: selectedPort.value,
@@ -278,9 +275,14 @@ async function uploadCode() {
     });
     
     outputLog.value += uploadRes.log;
-    if (uploadRes.success) outputLog.value += "\nSUBIDA COMPLETADA.\n Ejecutando...";
+    if (uploadRes.success) {
+        setRobotStatus("¡ÉXITO! Tu robot tiene vida. 🚀", "happy");
+    } else {
+        setRobotStatus("Falló la subida. Revisa el cable.", "error");
+    }
   } catch (e) {
-    outputLog.value += "\nError crítico en subida: " + e.message;
+    setRobotStatus("Error crítico en subida.", "error");
+    outputLog.value += "\nError crítico: " + e.message;
   } finally {
     isUploading.value = false;
   }
@@ -290,33 +292,32 @@ async function installAvrCore() {
   if (isInstalling.value) return;
   if (!window.api) return;
 
-  if(!confirm("Esto descargará el soporte para Arduino Uno/Nano/Mega. ¿Continuar?")) return;
+  if(!confirm("Esto descargará el soporte para Arduino. ¿Continuar?")) return;
 
   isInstalling.value = true;
-  showOutput.value = true;
-  outputLog.value += "\n⬇ Iniciando descarga del núcleo 'arduino:avr'...\n";
+  setRobotStatus("Descargando herramientas...", "thinking");
   
   try {
     const res = await window.api.installCore('arduino:avr');
     outputLog.value += res.log;
     
     if (res.success) {
-        outputLog.value += "\n✅ Core AVR instalado.";
+        setRobotStatus("¡Instalación completada!", "happy");
         window.api.listAllBoards().then(data => {
             if(data && data.boards) allKnownBoards.value = data.boards;
         });
     } else {
-        outputLog.value += "\n⚠️ Error en la instalación.";
+        setRobotStatus("Hubo un error instalando.", "error");
     }
   } catch (e) {
-    outputLog.value += "\nError crítico al instalar core: " + e.message;
+    outputLog.value += "\nError crítico: " + e.message;
   } finally {
     isInstalling.value = false;
   }
 }
 
 async function openInArduino() {
-  outputLog.value += "\nAbriendo en Arduino IDE...";
+  setRobotStatus("Abriendo IDE avanzado...", "normal");
   if(window.api) {
       await window.api.openIde({
           code: generatedCode.value, 
@@ -329,7 +330,8 @@ async function saveSketch() {
   if (window.api) {
     const result = await window.api.saveFile(generatedXml.value, sketchName.value);
     if(result.success) {
-        outputLog.value += `\nProyecto guardado en: ${result.path}`;
+        setRobotStatus("¡Proyecto guardado!", "happy");
+        outputLog.value += `\nGuardado en: ${result.path}`;
     }
   }
 }
@@ -342,12 +344,12 @@ async function loadSketch() {
         try {
             const xml = Blockly.utils.xml.textToDom(result.content);
             Blockly.Xml.domToWorkspace(xml, workspace);
-            outputLog.value += "\nProyecto cargado exitosamente.";
+            setRobotStatus("¡Proyecto cargado!", "happy");
             if(result.fileName) {
                 sketchName.value = result.fileName.replace(/\.[^/.]+$/, "");
             }
         } catch(e) {
-            outputLog.value += "\nError al parsear archivo.";
+            setRobotStatus("No pude leer ese archivo.", "error");
             console.error(e);
         }
     }
@@ -355,27 +357,22 @@ async function loadSketch() {
 }
 
 function clearWorkspace() {
+    audioClick.play();
     if(confirm("¿Estás seguro de borrar todos los bloques?")) {
         workspace.clear();
+        audioDelete.play(); // Sonido extra
         insertStartBlock();
-        outputLog.value += "\nWorkspace limpiado.";
+        setRobotStatus("Lienzo limpio. ¡A crear!", "normal");
     }
-}
-
-function runSimulation() {
-    showOutput.value = true;
-    outputLog.value += "\n--- CÓDIGO GENERADO ---\n";
-    outputLog.value += generatedCode.value;
 }
 
 // =========================================================
 // DEFINICIÓN DE TOOLBOX (MENÚ LATERAL)
 // =========================================================
-// Aquí se registran todas las categorías para que aparezcan en la UI.
 const toolbox = {
   kind: 'categoryToolbox',
   contents: [
-    { kind: 'category', name: 'Variables', colour: '#A65C81', contents: [
+    { kind: 'category', name: 'Variables', colour: '#FF6B6B', contents: [
       { kind: 'block', type: 'arduino_start' },
       { kind: 'button', text: 'Crear Variable', callbackKey: 'CREATE_VARIABLE' },
       { kind: 'block', type: 'variables_get' },
@@ -383,7 +380,7 @@ const toolbox = {
       { kind: 'block', type: 'variables_set_type' },
       { kind: 'block', type: 'type_cast' }
     ]},
-    { kind: 'category', name: 'Lógica', colour: '#5C81A6', contents: [
+    { kind: 'category', name: 'Decisiones', colour: '#FFD93D', contents: [
       { kind: 'block', type: 'controls_if' },
       { kind: 'block', type: 'logic_compare' },
       { kind: 'block', type: 'logic_operation' },
@@ -392,13 +389,13 @@ const toolbox = {
       { kind: 'block', type: 'logic_null' },
       { kind: 'block', type: 'logic_ternary' }
     ]},
-    { kind: 'category', name: 'Bucles', colour: '#5CA65C', contents: [
+    { kind: 'category', name: 'Repetir', colour: '#4D96FF', contents: [
       { kind: 'block', type: 'controls_repeat_ext', inputs: { TIMES: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
       { kind: 'block', type: 'controls_whileUntil' },
       { kind: 'block', type: 'controls_for', inputs: { FROM: { shadow: { type: 'math_number', fields: { NUM: 1 } } }, TO: { shadow: { type: 'math_number', fields: { NUM: 10 } } }, BY: { shadow: { type: 'math_number', fields: { NUM: 1 } } } } },
       { kind: 'block', type: 'controls_flow_statements' }
     ]},
-    { kind: 'category', name: 'Matemáticas', colour: '#5C68A6', contents: [
+    { kind: 'category', name: 'Números', colour: '#6BCB77', contents: [
       { kind: 'block', type: 'math_number' },
       { kind: 'block', type: 'math_arithmetic' },
       { kind: 'block', type: 'math_random_int' },
@@ -411,7 +408,7 @@ const toolbox = {
       { kind: 'block', type: 'math_modulo' },
       { kind: 'block', type: 'math_constrain' }
     ]},
-    { kind: 'category', name: 'Texto', colour: '#5CA699', contents: [
+    { kind: 'category', name: 'Texto', colour: '#A65C81', contents: [
       { kind: 'block', type: 'text' },
       { kind: 'block', type: 'text_print' },
       { kind: 'block', type: 'text_join' },
@@ -420,20 +417,19 @@ const toolbox = {
       { kind: 'block', type: 'text_isEmpty' }
     ]},
     { kind: 'sep' },
-    { kind: 'category', name: 'Entrada/Salida', colour: '#5C81A6', contents: [
+    { kind: 'category', name: 'Pines I/O', colour: '#5C81A6', contents: [
       { kind: 'block', type: 'digital_write' },
       { kind: 'block', type: 'digital_read' },
       { kind: 'block', type: 'analog_read' },
       { kind: 'block', type: 'analog_write' },
       { kind: 'block', type: 'custom_delay' }
     ]},
-    // --- NUEVAS CATEGORÍAS AÑADIDAS ---
-    { kind: 'category', name: 'Motores & Energía', colour: '#E67E22', contents: [
+    { kind: 'category', name: 'Motores', colour: '#E67E22', contents: [
       { kind: 'block', type: 'motor_setup' },
       { kind: 'block', type: 'motor_run' },
       { kind: 'block', type: 'motor_stop' }
     ]},
-    { kind: 'category', name: 'Pantallas (8x8)', colour: '#D35400', contents: [
+    { kind: 'category', name: 'Pantalla 8x8', colour: '#D35400', contents: [
       { kind: 'block', type: 'display_8x8_setup' },
       { kind: 'block', type: 'display_8x8_draw' }
     ]},
@@ -442,7 +438,7 @@ const toolbox = {
       { kind: 'block', type: 'color_sensor_read' },
       { kind: 'block', type: 'sound_sensor_read' }
     ]},
-    { kind: 'category', name: 'Conectividad', colour: '#2980B9', contents: [
+    { kind: 'category', name: 'Wifi/BT', colour: '#2980B9', contents: [
       { kind: 'block', type: 'wifi_connect' },
       { kind: 'block', type: 'wifi_is_connected' },
       { kind: 'block', type: 'bluetooth_setup' },
@@ -484,11 +480,12 @@ onMounted(async () => {
       renderer: 'geras',
       theme: {
         'base': 'classic',
-        'fontStyle': { 'family': 'Segoe UI, sans-serif', 'weight': 'bold', 'size': 12 },
+        'fontStyle': { 'family': 'Fredoka One, sans-serif', 'weight': 'normal', 'size': 12 },
         'componentStyles': { 
-            'workspaceBackgroundColour': 'transparent', 
-            'toolboxBackgroundColour': '#e0e5ec', 
-            'flyoutBackgroundColour': '#e0e5eccc' 
+            'workspaceBackgroundColour': '#FFFFFF', 
+            'toolboxBackgroundColour': '#FFF4E0', 
+            'flyoutBackgroundColour': '#FFEacc',
+            'flyoutOpacity': 1
         }
       }
     });
@@ -498,6 +495,13 @@ onMounted(async () => {
     });
     
     workspace.addChangeListener(updateContent);
+    // Sonido al mover bloques
+    workspace.addChangeListener((e) => {
+        if(e.type === Blockly.Events.BLOCK_MOVE && !e.oldParentId && e.newParentId) {
+            audioClick.play();
+        }
+    });
+
     window.addEventListener('resize', () => Blockly.svgResize(workspace));
     
     insertStartBlock();
@@ -514,339 +518,278 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* VARIABLES NEUMORFISM */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
+
+/* --- ESTILO CARTOON / KIDS --- */
 :root {
-    --bg-color: #e0e5ec;
-    --shadow-light: #ffffff;
-    --shadow-dark: #a3b1c6;
-    --text-color: #4d5b6b;
-    --accent-color: #6d7fcc;
-    --danger-color: #e57373;
+    --bg-sunny: #FFFAE5;
+    --primary-blue: #4D96FF;
+    --primary-green: #6BCB77;
+    --primary-red: #FF6B6B;
+    --primary-yellow: #FFD93D;
+    --border-dark: #2C3E50;
+    --font-head: 'Fredoka One', cursive;
+    --font-body: 'Nunito', sans-serif;
 }
 
-.app-layout {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background-color: #e0e5ec;
-  font-family: 'Segoe UI', sans-serif;
-  color: #4d5b6b;
-}
-
-/* UTILIDADES SVG */
-.w-5 { width: 20px; }
-.h-5 { height: 20px; }
-.w-4 { width: 16px; }
-.h-4 { height: 16px; }
-.ml-1 { margin-left: 4px; }
-.animate-spin { animation: spin 1s linear infinite; }
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* ESTILOS NEUMÓRFICOS */
-.neu-btn, .neu-btn-icon {
-    border-radius: 10px;
-    background: #e0e5ec;
-    box-shadow: 6px 6px 12px #a3b1c6, -6px -6px 12px #ffffff;
-    border: none;
-    color: #4d5b6b;
-    transition: all 0.2s ease;
-}
-
-.neu-btn:hover, .neu-btn-icon:hover {
-    transform: translateY(-1px);
-    box-shadow: 8px 8px 16px #a3b1c6, -8px -8px 16px #ffffff;
-    color: #6d7fcc;
-}
-
-.neu-btn:active, .neu-btn-icon:active {
-    box-shadow: inset 4px 4px 8px #a3b1c6, inset -4px -4px 8px #ffffff;
-    transform: translateY(1px);
-}
-
-.neu-input, .neu-inset {
-    border-radius: 10px;
-    background: #e0e5ec;
-    box-shadow: inset 5px 5px 10px #a3b1c6, inset -5px -5px 10px #ffffff;
-    border: none;
-    padding: 8px 12px;
-}
-
-.neu-inset-large {
-    box-shadow: inset 8px 8px 16px #a3b1c6, inset -8px -8px 16px #ffffff;
-}
-
-.neu-flat {
-    background: #e0e5ec;
-    box-shadow: 5px 5px 10px #a3b1c6, -5px -5px 10px #ffffff;
-}
-
-/* LAYOUT */
-.top-bar {
-  min-height: 70px;
-  background: #e0e5ec;
-  display: flex;
-  align-items: center;
-  padding: 10px 20px;
-  gap: 20px;
-  flex-wrap: wrap;
-  z-index: 10;
-}
-
-.logo-area {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  min-width: 120px;
-}
-
-.app-logo { 
-    height: 60px; /* Ajustado para que no sea enorme */
-    width: auto;
-    object-fit: contain;
-}
-.divider-logo { color: #a3b1c6; font-size: 1.5rem; font-weight: 300; }
-
-.controls-wrapper {
+.kids-layout {
     display: flex;
-    flex-grow: 1;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--bg-sunny);
+    font-family: var(--font-body);
+    color: var(--border-dark);
+    overflow: hidden;
+}
+
+/* TOP BAR */
+.top-bar-kids {
+    background: #ffffff;
+    padding: 10px 20px;
+    display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 15px;
-    flex-wrap: wrap;
+    border-bottom: 4px solid var(--border-dark);
+    box-shadow: 0 6px 0 rgba(0,0,0,0.1);
+    z-index: 100;
+    gap: 20px;
 }
 
-.hardware-controls {
+.brand-area {
     display: flex;
-    gap: 15px;
     align-items: center;
-    padding: 10px 15px;
-    border-radius: 15px;
-    flex-wrap: wrap;
+    gap: 15px;
 }
 
-.hw-select {
-    color: #4d5b6b;
-    font-weight: 600;
-    min-width: 140px;
-    outline: none;
+.bouncy { animation: bounce 2s infinite; }
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 
-.port-selector {
+.app-logo { height: 50px; }
+
+.project-title-wrapper {
     display: flex;
+    flex-direction: column;
+}
+
+.label-tiny {
+    font-size: 0.7rem;
+    font-weight: 900;
+    color: #95a5a6;
+    margin-left: 5px;
+}
+
+.kids-input-title {
+    background: #F3F4F6;
+    border: 3px solid var(--border-dark);
+    border-radius: 12px;
+    padding: 5px 10px;
+    font-family: var(--font-head);
+    font-size: 1.2rem;
+    color: var(--primary-blue);
+    width: 200px;
+    transition: transform 0.2s;
+}
+.kids-input-title:focus {
+    transform: scale(1.05);
+    outline: none;
+    border-color: var(--primary-blue);
+}
+
+/* HARDWARE CONTROLS */
+.hardware-island {
+    display: flex;
+    gap: 15px;
+    background: #EEE;
+    padding: 8px 15px;
+    border-radius: 15px;
+    border: 3px solid #DDD;
+}
+
+.select-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.icon-label { font-size: 1.5rem; }
+
+.kids-select {
+    appearance: none;
+    background: white;
+    border: 3px solid var(--border-dark);
+    border-radius: 10px;
+    padding: 8px 30px 8px 10px;
+    font-weight: 800;
+    font-family: var(--font-body);
+    cursor: pointer;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+}
+.kids-select:active { box-shadow: 2px 2px 0 rgba(0,0,0,0.2); transform: translate(2px, 2px); }
+
+.kids-btn-mini {
+    background: var(--primary-yellow);
+    border: 3px solid var(--border-dark);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 5px;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+    transition: all 0.2s;
+}
+.kids-btn-mini:active { transform: translate(3px, 3px); box-shadow: none; }
+.rotate-hover:hover { transform: rotate(180deg); }
+
+/* BIG ACTIONS */
+.big-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.kids-big-btn {
+    border: 3px solid var(--border-dark);
+    border-radius: 15px;
+    padding: 10px 20px;
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 6px 6px 0 rgba(0,0,0,0.2);
+    transition: all 0.1s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.kids-big-btn:hover { transform: translateY(-2px); box-shadow: 8px 8px 0 rgba(0,0,0,0.2); }
+.kids-big-btn:active { transform: translateY(4px); box-shadow: 0px 0px 0 rgba(0,0,0,0.2); }
+
+.btn-blue { background: var(--primary-blue); }
+.btn-green { background: var(--primary-green); }
+
+.spin { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* MAIN STAGE */
+.main-stage {
+    display: flex;
+    flex: 1;
+    padding: 20px;
+    gap: 20px;
+    overflow: hidden;
+}
+
+.blockly-frame {
+    flex: 1;
+    background: white;
+    border: 4px solid var(--border-dark);
+    border-radius: 20px;
+    box-shadow: 10px 10px 0 rgba(0,0,0,0.1);
+    overflow: hidden;
+    position: relative;
+}
+
+.blockly-canvas { width: 100%; height: 100%; }
+
+/* SIDEBAR TOOLS */
+.side-tools {
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ROBOT ASSISTANT */
+.robot-assistant {
+    background: white;
+    border: 4px solid var(--border-dark);
+    border-radius: 20px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 8px 8px 0 rgba(0,0,0,0.1);
+    transition: all 0.3s;
+}
+
+.robot-assistant.error { background: #FFEEEE; border-color: var(--primary-red); }
+.robot-assistant.happy { background: #EEFFEE; border-color: var(--primary-green); }
+
+.robot-avatar { font-size: 4rem; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+.speech-bubble {
+    background: #f0f0f0;
+    border-radius: 15px;
+    padding: 15px;
+    margin-top: 10px;
+    position: relative;
+    border: 2px solid var(--border-dark);
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+}
+.speech-bubble:after {
+    content: ''; position: absolute; top: -10px; left: 50%;
+    border-width: 0 10px 10px; border-style: solid;
+    border-color: transparent transparent var(--border-dark) transparent;
+}
+
+/* EXTRA ACTIONS GRID */
+.extra-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
 }
 
-.refresh-btn {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
+.kids-tool-btn {
+    border: 3px solid var(--border-dark);
+    border-radius: 12px;
+    padding: 15px;
+    font-size: 1.5rem;
     cursor: pointer;
-    padding: 0;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+    transition: transform 0.1s;
+    background: white;
 }
+.kids-tool-btn:active { transform: translate(4px, 4px); box-shadow: none; }
 
-.sketch-name-container {
-    margin: 0 15px;
-    flex-grow: 0;
-    min-width: 150px;
-    display: flex;
-    align-items: center;
-}
+.btn-yellow { background: var(--primary-yellow); }
+.btn-purple { background: #9B59B6; color: white; }
+.btn-orange { background: #E67E22; color: white; }
+.btn-red { background: #3498db; color: white; }
+.btn-danger-zone { background: var(--primary-red); color: white; }
 
-.sketch-name-input {
-    width: 100%;
-    min-width: 150px;
-    text-align: center;
-    font-weight: bold;
-    color: #6d7fcc;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
-.sketch-name-input:focus {
-    outline: none;
-    box-shadow: inset 6px 6px 12px #a3b1c6, inset -6px -6px 12px #ffffff;
-}
-
-.actions-area {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 8px 16px;
-    font-weight: 700;
-    cursor: pointer;
-    font-size: 0.9rem;
-    white-space: nowrap;
-}
-
-.verify-btn { color: #4a90e2; }
-.upload-btn { color: #27ae60; }
-.run-btn { color: #e67e22; }
-.danger { color: #e57373; }
-.danger:hover { color: #ff5252; }
-
-.divider { width: 1px; height: 30px; background: #cbd5e1; margin: 0 5px; opacity: 0.5; }
-
-/* SIDEBAR & CONTENT */
-.main-content {
-  flex-grow: 1;
-  display: flex;
-  overflow: hidden;
-  position: relative;
-  padding: 15px;
-  gap: 15px;
-}
-
-.blockly-container {
-  flex-grow: 1;
-  border-radius: 20px;
-  overflow: hidden;
-  background-color: #e0e5ec;
-}
-
-.dot-grid-background {
-  background-image: radial-gradient(#a3b1c6 1.5px, transparent 1.5px);
-  background-size: 20px 20px;
-  background-position: 0 0;
-}
-
-.right-sidebar {
-  width: 350px;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  transition: width 0.3s ease;
-  flex-shrink: 0;
-  padding: 15px;
-  gap: 15px;
-}
-
-.tabs {
-    display: flex;
-    margin-bottom: 5px;
-}
-
-.tab {
-    background: transparent;
-    border: none;
-    color: #4d5b6b;
-    padding: 5px 15px;
-    cursor: pointer;
-    font-weight: 700;
-    border-bottom: 3px solid transparent;
-}
-
-.tab.active {
-    color: #6d7fcc;
-    border-bottom-color: #6d7fcc;
-    text-shadow: 1px 1px 2px #fff;
-}
-
-.code-panel {
-    flex-grow: 1;
-    position: relative;
-    overflow: hidden;
+/* CODE PREVIEW */
+.code-preview-card {
+    background: #34495E;
     border-radius: 15px;
-}
-
-.panel-content {
-    width: 100%;
-    height: 100%;
-    color: #4d5b6b;
-    resize: none;
-    font-family: 'Consolas', monospace;
-    font-size: 0.85rem;
-    outline: none;
-    background: #e0e5ec;
-}
-
-.output-panel {
-    height: 200px;
-    display: flex;
-    flex-direction: column;
-    transition: height 0.3s ease;
-    border-radius: 15px;
-    background: #e0e5ec;
-    box-shadow: 5px 5px 10px #a3b1c6, -5px -5px 10px #ffffff;
     overflow: hidden;
+    border: 3px solid var(--border-dark);
+    flex-shrink: 0;
 }
-
-.output-panel.collapsed {
-    height: 45px;
-}
-
-.panel-header {
-    padding: 10px 15px;
-    background: #e0e5ec;
-    color: #4d5b6b;
-    font-size: 0.85rem;
+.card-header {
+    background: #2C3E50;
+    color: white;
+    padding: 10px;
     font-weight: bold;
+    cursor: pointer;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    user-select: none;
-    border-bottom: 1px solid rgba(163, 177, 198, 0.3);
 }
-
-.panel-header:hover {
-    color: #6d7fcc;
-}
-
-.header-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.neu-btn-small {
+.code-content textarea {
+    width: 100%;
+    height: 150px;
+    background: #34495E;
+    color: #2ECC71;
     border: none;
-    background: transparent;
-    color: #a3b1c6;
-    cursor: pointer;
-    font-size: 0.75rem;
-    padding: 4px 8px;
-    border-radius: 6px;
-    box-shadow: 3px 3px 6px #a3b1c6, -3px -3px 6px #ffffff;
-}
-.neu-btn-small:hover { color: #e57373; }
-
-.console-content {
-    flex-grow: 1;
-    background: #e0e5ec;
-    color: #27ae60;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
     resize: none;
-    outline: none;
-    margin: 10px;
-    border-radius: 10px;
-}
-
-/* RESPONSIVE */
-@media (max-width: 900px) {
-    .btn-text { display: none; }
-    .action-btn { padding: 10px; border-radius: 50%; width: 40px; height: 40px; }
-    .right-sidebar { width: 250px; }
-}
-
-@media (max-width: 768px) {
-    .main-content { flex-direction: column; }
-    .right-sidebar { width: 100%; height: 350px; }
-    .top-bar { justify-content: center; }
-    .controls-wrapper { justify-content: center; }
-    .sketch-name-container { width: 100%; margin: 10px 0; order: -1; }
-    .sketch-name-input { width: 100%; }
 }
 </style>
