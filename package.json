@@ -1,8 +1,8 @@
 {
-  "name": "RoboticLab",
-  "productName": "RoboticLab",
+  "name": "RoboticLabKIDS",
+  "productName": "RoboticLabKIDS",
   "version": "1.0.1",
-  "description": "An Electron application with Vue",
+  "description": "IDE para niños basado en Blockly y Arduino",
   "main": "./out/main/index.js",
   "author": "Julian Torres",
   "homepage": "https://electron-vite.org",

@@ -25,7 +25,7 @@ asarUnpack:
 
 win:
   executableName: MarkRobotIDE
-  icon: resources/logo_RM.png
+  icon: resources/logo_m4rk.png
   target: nsis
   extraResources:
     - from: "bin/win/arduino-cli.exe"
