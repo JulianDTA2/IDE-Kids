@@ -18,7 +18,7 @@
       <header class="clay-header animate-slideDown">
         <div class="header-content">
           <div class="logo-area animate-bounce-gentle">
-            <div class="logo-container">
+            <div>
                 <!--<img :src="logo1" alt="Logo RM" class="app-logo" />
                 <span class="divider-logo">|</span>-->
                 <img :src="logo2" alt="Logo Mark" class="app-logo" />
@@ -90,6 +90,7 @@
               </svg>
               <span class="btn-text">Verificar</span>
             </button>
+            
 
             <button 
               @click="uploadCode"
@@ -104,6 +105,10 @@
                 <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span class="btn-text">Subir</span>
+            </button>
+            <button @click="openInArduino" class="clay-btn btn-extra" title="Abrir en Arduino IDE Nativo">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+              <span class="btn-text">IDE</span>
             </button>
 
             <div class="divider"></div>
@@ -204,7 +209,7 @@ const outputLog = ref("¡Bienvenido a MarkRobot IDE! \nSelecciona tu placa y com
 const isCompiling = ref(false);
 const isUploading = ref(false);
 const isInstalling = ref(false);
-const isRefreshing = ref(false); // UI state
+const isRefreshing = ref(false); 
 const showOutput = ref(true); 
 const sketchName = ref("MiProyecto");
 const stars = ref([]); // Background stars
@@ -217,12 +222,14 @@ const selectedBoardFqbn = ref("arduino:avr:uno");
 
 let workspace = null;
 
-// --- COMPUTADA: FORMATO DE PUERTOS ---
+// --- COMPUTADA: FORMATO DE PUERTOS ROBUSTO ---
+// Esta versión busca el puerto aunque venga anidado (común en Arduino CLI nuevo)
 const availablePorts = computed(() => {
     if (!rawPorts.value || !Array.isArray(rawPorts.value)) return [];
 
     return rawPorts.value.map(p => {
         let portName = p.address;
+        // Fix para CLI modernos donde address está dentro de 'port'
         if (!portName && p.port && p.port.address) {
             portName = p.port.address;
         }
@@ -230,7 +237,7 @@ const availablePorts = computed(() => {
 
         return {
             address: portName,
-            label: portName, 
+            label: portName + (p.boardName ? ` (${p.boardName})` : ''), 
         };
     }).filter(p => p !== null); 
 });
@@ -238,7 +245,6 @@ const availablePorts = computed(() => {
 async function refreshPorts() {
   isRefreshing.value = true;
   if (!window.api) {
-      // Mock para desarrollo web si no hay API
       setTimeout(() => { isRefreshing.value = false; }, 500);
       return;
   }
@@ -254,15 +260,15 @@ async function refreshPorts() {
             if (!selectedPort.value) {
                 selectedPort.value = availablePorts.value[0].address;
             }
-            outputLog.value += `\nEncontrados: ${availablePorts.value.length}`;
+            outputLog.value += `\n¡Encontrados: ${availablePorts.value.length}!`;
         } else {
-            outputLog.value += "\nNo se encontraron puertos.";
+            outputLog.value += "\nNo se encontraron puertos (revisa el cable USB).";
         }
         isRefreshing.value = false;
-    }, 500);
+    }, 100);
     
   } catch (e) {
-    outputLog.value += `\nError al listar puertos: ${e.message}`;
+    outputLog.value += `\nError al buscar: ${e.message}`;
     isRefreshing.value = false;
   }
 }
@@ -283,7 +289,7 @@ async function verifyCode() {
       sketchName: sketchName.value || 'Sketch'
     });
     outputLog.value += res.log;
-    if (res.success) outputLog.value += "\n¡Todo listo! Tu código está perfecto.";
+    if (res.success) outputLog.value += "\n✅ ¡Todo listo! Tu código está perfecto.";
   } catch (e) {
     outputLog.value += "\nError crítico: " + e.message;
   } finally {
@@ -313,7 +319,7 @@ async function uploadCode() {
     });
     
     if (!compileRes.success) {
-      outputLog.value += compileRes.log + "\nSubida cancelada por error de compilación.";
+      outputLog.value += compileRes.log + "\n⚠️ Subida cancelada por error de compilación.";
       isUploading.value = false;
       return;
     }
@@ -327,7 +333,7 @@ async function uploadCode() {
     });
     
     outputLog.value += uploadRes.log;
-    if (uploadRes.success) outputLog.value += "\n¡SUBIDA COMPLETADA! Tu robot está vivo.";
+    if (uploadRes.success) outputLog.value += "\n🚀 ¡SUBIDA COMPLETADA! Tu robot está vivo.";
   } catch (e) {
     outputLog.value += "\nError crítico en subida: " + e.message;
   } finally {
@@ -339,23 +345,23 @@ async function installAvrCore() {
   if (isInstalling.value) return;
   if (!window.api) return;
 
-  if(!confirm("Esto descargará el soporte para Arduino Uno/Nano. ¿Continuar?")) return;
+  if(!confirm("Esto descargará las herramientas para Arduino. ¿Continuar?")) return;
 
   isInstalling.value = true;
   showOutput.value = true;
-  outputLog.value += "\nIniciando descarga de herramientas...\n";
+  outputLog.value += "\n⬇ Iniciando descarga de herramientas...\n";
   
   try {
     const res = await window.api.installCore('arduino:avr');
     outputLog.value += res.log;
     
     if (res.success) {
-        outputLog.value += "\nHerramientas instaladas.";
+        outputLog.value += "\n✅ Herramientas instaladas correctamente.";
         window.api.listAllBoards().then(data => {
             if(data && data.boards) allKnownBoards.value = data.boards;
         });
     } else {
-        outputLog.value += "\nHubo un problema en la instalación.";
+        outputLog.value += "\n⚠️ Hubo un problema en la instalación.";
     }
   } catch (e) {
     outputLog.value += "\nError crítico: " + e.message;
@@ -364,11 +370,22 @@ async function installAvrCore() {
   }
 }
 
+// Nueva funcionalidad traída del diseño Neumorphic
+async function openInArduino() {
+  outputLog.value += "\nAbriendo en Arduino IDE nativo...";
+  if(window.api) {
+      await window.api.openIde({
+          code: generatedCode.value, 
+          sketchName: sketchName.value || 'Sketch'
+      });
+  }
+}
+
 async function saveSketch() {
   if (window.api) {
     const result = await window.api.saveFile(generatedXml.value, sketchName.value);
     if(result.success) {
-        outputLog.value += `\nProyecto guardado en: ${result.path}`;
+        outputLog.value += `\n💾 Proyecto guardado en: ${result.path}`;
     }
   }
 }
@@ -381,7 +398,7 @@ async function loadSketch() {
         try {
             const xml = Blockly.utils.xml.textToDom(result.content);
             Blockly.Xml.domToWorkspace(xml, workspace);
-            outputLog.value += "\nProyecto cargado exitosamente.";
+            outputLog.value += "\n📂 Proyecto cargado exitosamente.";
             if(result.fileName) {
                 sketchName.value = result.fileName.replace(/\.[^/.]+$/, "");
             }
@@ -397,11 +414,11 @@ function clearWorkspace() {
     if(confirm("¿Borrar todos los bloques y empezar de cero?")) {
         workspace.clear();
         insertStartBlock();
-        outputLog.value += "\nWorkspace limpiado.";
+        outputLog.value += "\n✨ Espacio de trabajo limpio.";
     }
 }
 
-// Toolbox definition
+// TOOLBOX COMPLETO (Categorías del diseño Gris pero con colores Kids)
 const toolbox = {
   kind: 'categoryToolbox',
   contents: [
@@ -418,23 +435,29 @@ const toolbox = {
       { kind: 'block', type: 'logic_compare' },
       { kind: 'block', type: 'logic_operation' },
       { kind: 'block', type: 'logic_boolean' },
-      { kind: 'block', type: 'logic_negate' }
+      { kind: 'block', type: 'logic_negate' },
+      { kind: 'block', type: 'logic_null' }, // Agregado
+      { kind: 'block', type: 'logic_ternary' } // Agregado
     ]},
     { kind: 'category', name: 'Bucles', colour: '#10b981', contents: [ // Green
       { kind: 'block', type: 'controls_repeat_ext', inputs: { TIMES: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
       { kind: 'block', type: 'controls_whileUntil' },
-      { kind: 'block', type: 'controls_for', inputs: { FROM: { shadow: { type: 'math_number', fields: { NUM: 1 } } }, TO: { shadow: { type: 'math_number', fields: { NUM: 10 } } }, BY: { shadow: { type: 'math_number', fields: { NUM: 1 } } } } }
+      { kind: 'block', type: 'controls_for', inputs: { FROM: { shadow: { type: 'math_number', fields: { NUM: 1 } } }, TO: { shadow: { type: 'math_number', fields: { NUM: 10 } } }, BY: { shadow: { type: 'math_number', fields: { NUM: 1 } } } } },
+      { kind: 'block', type: 'controls_flow_statements' } // Agregado
     ]},
     { kind: 'category', name: 'Matemáticas', colour: '#f59e0b', contents: [ // Amber
       { kind: 'block', type: 'math_number' },
       { kind: 'block', type: 'math_arithmetic' },
       { kind: 'block', type: 'math_random_int' },
-      { kind: 'block', type: 'math_map' }
+      { kind: 'block', type: 'math_map' },
+      { kind: 'block', type: 'math_single' }, // Agregado
+      { kind: 'block', type: 'math_constrain' } // Agregado
     ]},
     { kind: 'category', name: 'Texto', colour: '#ec4899', contents: [ // Pink
       { kind: 'block', type: 'text' },
       { kind: 'block', type: 'text_print' },
-      { kind: 'block', type: 'text_join' }
+      { kind: 'block', type: 'text_join' },
+      { kind: 'block', type: 'text_length' } // Agregado
     ]},
     { kind: 'sep' },
     { kind: 'category', name: 'Entrada/Salida', colour: '#6366f1', contents: [ // Indigo
@@ -449,6 +472,10 @@ const toolbox = {
       { kind: 'block', type: 'motor_run' },
       { kind: 'block', type: 'motor_stop' }
     ]},
+    { kind: 'category', name: 'Pantallas (8x8)', colour: '#D35400', contents: [ // Dark Orange (Nuevo)
+      { kind: 'block', type: 'display_8x8_setup' },
+      { kind: 'block', type: 'display_8x8_draw' }
+    ]},
     { kind: 'category', name: 'Sensores', colour: '#8b5cf6', contents: [ // Violet
       { kind: 'block', type: 'ultrasonic_read' },
       { kind: 'block', type: 'color_sensor_read' },
@@ -456,8 +483,10 @@ const toolbox = {
     ]},
     { kind: 'category', name: 'Conexión', colour: '#06b6d4', contents: [ // Cyan
       { kind: 'block', type: 'wifi_connect' },
+      { kind: 'block', type: 'wifi_is_connected' }, // Agregado
       { kind: 'block', type: 'bluetooth_setup' },
       { kind: 'block', type: 'bluetooth_read_string' },
+      { kind: 'block', type: 'bluetooth_send_string' }, // Agregado
       { kind: 'block', type: 'rm_bluetooth_read' }
     ]}
   ]
@@ -485,7 +514,7 @@ function insertStartBlock() {
 }
 
 onMounted(async () => {
-    // Generar estrellas
+    // Generar estrellas (Decoración Kids)
     stars.value = Array.from({ length: 25 }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
@@ -520,7 +549,7 @@ onMounted(async () => {
     workspace.addChangeListener(updateContent);
     window.addEventListener('resize', () => Blockly.svgResize(workspace));
     
-    // Pequeño delay para asegurar que el DOM está listo antes de renderizar bloques
+    // Pequeño delay para asegurar que el DOM está listo
     setTimeout(() => {
         insertStartBlock();
         Blockly.svgResize(workspace);
