@@ -1,113 +1,184 @@
 <template>
-  <div class="kids-layout">
-    
-    <header class="top-bar-kids">
-      <div class="brand-area">
-          <div class="logo-container bouncy">
-            <img :src="logo1" alt="Logo RM" class="app-logo" />
-          </div>
-          <div class="project-title-wrapper">
-             <span class="label-tiny">MI PROYECTO:</span>
-             <input 
-                type="text" 
-                v-model="sketchName" 
-                class="kids-input-title" 
-                placeholder="¡Nombra tu invento!" 
-            />
-          </div>
-      </div>
-      
-      <div class="hardware-island">
-        <div class="select-wrapper">
-            <span class="icon-label">🤖</span>
-            <select v-model="selectedBoardFqbn" class="kids-select" title="¿Qué cerebro usaremos?">
-                <option value="arduino:avr:uno">Arduino Uno</option>
-                <option value="arduino:avr:nano">Arduino Nano</option>
-                <option value="arduino:avr:mega">Arduino Mega</option>
-                <option value="esp8266:esp8266:nodemcuv2">NodeMCU 1.0</option>
-                <option value="esp32:esp32:esp32">ESP32 Dev Module</option>
-                <option disabled>──────────────</option>
-                <option v-for="b in allKnownBoards" :key="b.fqbn" :value="b.fqbn">
-                    {{ b.name }}
-                </option>
-            </select>
-        </div>
+  <div class="kids-ide-container">
+    <div class="stars-background">
+      <div 
+        v-for="star in stars" 
+        :key="star.id"
+        class="star"
+        :style="{
+          left: star.left + '%',
+          top: star.top + '%',
+          animationDelay: star.delay + 's',
+          animationDuration: star.duration + 's'
+        }"
+      ></div>
+    </div>
 
-        <div class="select-wrapper">
-            <span class="icon-label">🔌</span>
-            <select v-model="selectedPort" class="kids-select port-select">
+    <div class="main-wrapper">
+      <header class="clay-header animate-slideDown">
+        <div class="header-content">
+          <div class="logo-area animate-bounce-gentle">
+            <div class="logo-container">
+                <!--<img :src="logo1" alt="Logo RM" class="app-logo" />
+                <span class="divider-logo">|</span>-->
+                <img :src="logo2" alt="Logo Mark" class="app-logo" />
+            </div>
+            <!--//<div class="mobile-hide">
+              <h1 class="logo-title">MarkRobot IDE</h1>
+              <p class="logo-subtitle">¡Programa tu mundo!</p>
+            </div>-->
+          </div>
+
+          <div class="hardware-controls">
+            <select 
+              v-model="selectedBoardFqbn" 
+              class="clay-select board-select"
+              title="Seleccionar Placa"
+            >
+              <option value="arduino:avr:uno">Arduino Uno</option>
+              <option value="arduino:avr:nano">Arduino Nano</option>
+              <option value="arduino:avr:mega">Arduino Mega</option>
+              <option value="esp8266:esp8266:nodemcuv2">NodeMCU 1.0</option>
+              <option value="esp32:esp32:esp32">ESP32 Dev Module</option>
+              <option disabled>──────────────</option>
+              <option v-for="b in allKnownBoards" :key="b.fqbn" :value="b.fqbn">
+                  {{ b.name }}
+              </option>
+            </select>
+
+            <div class="port-group">
+              <select 
+                v-model="selectedPort" 
+                class="clay-select port-select"
+                :title="selectedPort ? 'Puerto: ' + selectedPort : 'Sin puerto'"
+              >
                 <option value="" disabled>
-                  {{ availablePorts.length === 0 ? '🚫 Sin conexión' : 'Seleccionar Cable' }}
+                  {{ availablePorts.length === 0 ? 'Sin Puertos' : 'Seleccionar Puerto' }}
                 </option>
                 <option v-for="p in availablePorts" :key="p.address" :value="p.address">
-                    {{ p.label }}
+                  {{ p.label }}
                 </option>
-            </select>
-            <button @click="refreshPorts" class="kids-btn-mini rotate-hover" title="Buscar">🔄</button>
-        </div>
-      </div>
+              </select>
+              
+              <button @click="refreshPorts" class="clay-btn-icon btn-refresh" title="Refrescar Puertos">
+                <svg class="icon-refresh" :class="{ 'spinning': isRefreshing }" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
 
-      <div class="big-actions">
-        <button class="kids-big-btn btn-blue" @click="verifyCode" :class="{ 'loading': isCompiling }">
-            <div class="btn-icon">
-                 <span v-if="!isCompiling">🔍</span>
-                 <span v-else class="spin">⚙️</span>
-            </div>
-            <span class="btn-label">Revisar</span>
-        </button>
-        
-        <button class="kids-big-btn btn-green" @click="uploadCode" :class="{ 'loading': isUploading }">
-             <div class="btn-icon">
-                 <span v-if="!isUploading">🚀</span>
-                 <span v-else class="spin">🔥</span>
-            </div>
-            <span class="btn-label">¡Dar Vida!</span>
-        </button>
-      </div>
-    </header>
+            <input
+              v-model="sketchName"
+              type="text"
+              class="clay-input sketch-name"
+              placeholder="MiProyecto"
+            />
+          </div>
 
-    <main class="main-stage">
-      <div class="blockly-frame">
-          <div ref="blocklyDiv" class="blockly-canvas"></div>
-      </div>
-
-      <aside class="side-tools">
-        
-        <div class="code-preview-card">
-            <div class="card-header" @click="showOutput = !showOutput">
-                <span>💻 Modo Hacker</span>
-                <span class="arrow">{{ showOutput ? '▼' : '▶' }}</span>
-            </div>
-            <div v-show="showOutput" class="code-content">
-                 <textarea readonly :value="generatedCode"></textarea>
-            </div>
-        </div>
-
-        <div class="robot-assistant" :class="assistantMood">
-            <div class="robot-avatar">
-                <span v-if="assistantMood === 'happy'">🤖👍</span>
-                <span v-else-if="assistantMood === 'thinking'">🤔💭</span>
-                <span v-else-if="assistantMood === 'error'">😵💥</span>
-                <span v-else>🤖</span>
-            </div>
-            <div class="speech-bubble">
-                <p>{{ assistantMessage }}</p>
-            </div>
-        </div>
-
-        <div class="extra-actions-grid">
-            <button class="kids-tool-btn btn-yellow" @click="saveSketch" title="Guardar">💾</button>
-            <button class="kids-tool-btn btn-purple" @click="loadSketch" title="Abrir">📂</button>
-            <button class="kids-tool-btn btn-orange" @click="openInArduino" title="IDE Pro">🛠️</button>
-            <button class="kids-tool-btn btn-red" @click="installAvrCore" :disabled="isInstalling" title="Instalar Soporte">
-                <span v-if="isInstalling" class="spin">⏳</span>
-                <span v-else>📦</span>
+          <div class="action-buttons">
+            <button 
+              @click="verifyCode" 
+              :disabled="isCompiling"
+              class="clay-btn btn-verify"
+              title="Verificar Código"
+            >
+              <svg v-if="!isCompiling" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M5 13l4 4L19 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg v-else class="icon spinning" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="btn-text">Verificar</span>
             </button>
-            <button class="kids-tool-btn btn-danger-zone" @click="clearWorkspace" title="Borrar Todo">🗑️</button>
+
+            <button 
+              @click="uploadCode"
+              :disabled="isUploading"
+              class="clay-btn btn-upload"
+              title="Subir a la Placa"
+            >
+              <svg v-if="!isUploading" class="icon icon-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg v-else class="icon spinning" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="btn-text">Subir</span>
+            </button>
+
+            <div class="divider"></div>
+
+            <button @click="installAvrCore" :disabled="isInstalling" class="clay-btn-icon btn-extra" title="Instalar Drivers AVR">
+                 <svg v-if="isInstalling" class="icon spinning" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                 <svg v-else class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            </button>
+
+            <button @click="saveSketch" class="clay-btn btn-save" title="Guardar Proyecto">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="btn-text">Guardar</span>
+  </button>
+
+  <button @click="loadSketch" class="clay-btn btn-load" title="Abrir Proyecto">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="btn-text">Abrir</span>
+  </button>
+
+            <button @click="clearWorkspace" class="clay-btn-icon btn-delete" title="Limpiar Todo">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <div class="workspace-area clay-card animate-slideUp">
+          <div ref="blocklyDiv" class="blockly-area"></div>
         </div>
 
-      </aside>
-    </main>
+        <aside class="sidebar clay-card animate-slideLeft">
+            <div class="tabs">
+               <button class="tab-btn active">
+                   <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                   Código C++
+               </button>
+            </div>
+
+          <div class="code-section">
+            <textarea
+              class="clay-textarea code-display"
+              readonly
+              :value="generatedCode"
+              placeholder="// Tu código aparecerá aquí..."
+            ></textarea>
+          </div>
+
+          <div :class="['output-section', 'clay-card-inner', { collapsed: !showOutput }]">
+            <button @click="showOutput = !showOutput" class="output-header">
+              <div class="header-left">
+                <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Consola MarkRobot</span>
+              </div>
+              <svg class="chevron" :class="{ rotated: !showOutput }" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            
+            <div v-show="showOutput" class="console-content">
+              <button @click.stop="outputLog = ''" class="clear-btn">Limpiar</button>
+              <pre class="console-text">{{ outputLog }}</pre>
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
   </div>
 </template>
 
@@ -120,27 +191,23 @@ import 'blockly/blocks';
 // Importación unificada (Bloques + Generador)
 import ArduinoGenerator from '../arduino_core.js'; 
 
-// Ajusta estas rutas a tus logos reales
-import logo2 from '../../../../resources/logo_m4rk.webp'; 
-import logo1 from '../../../../resources/logo_RM.png';
-
-// --- NUEVO: SONIDOS (Ruta corregida: subimos 2 niveles para llegar a public) ---
-import clickSound from '../../public/media/click.mp3';
-import deleteSound from '../../public/media/delete.mp3';
+// Logos
+import logo2 from '../../../../resources/logo_m4rk.webp';
 
 Blockly.setLocale(En);
 
-// Refs de UI
+// Refs de UI/UX
 const blocklyDiv = ref(null);
 const generatedCode = ref("");
 const generatedXml = ref("");
-// outputLog se mantiene internamente pero visualmente usamos el Asistente
-const outputLog = ref("Bienvenido a MarkRobot IDE.\nSelecciona una placa y puerto para comenzar.");
+const outputLog = ref("¡Bienvenido a MarkRobot IDE! \nSelecciona tu placa y comienza a crear.");
 const isCompiling = ref(false);
 const isUploading = ref(false);
 const isInstalling = ref(false);
-const showOutput = ref(false); // Por defecto cerrado para niños
-const sketchName = ref("MiInvento");
+const isRefreshing = ref(false); // UI state
+const showOutput = ref(true); 
+const sketchName = ref("MiProyecto");
+const stars = ref([]); // Background stars
 
 // Refs de Hardware
 const rawPorts = ref([]); 
@@ -148,17 +215,9 @@ const selectedPort = ref("");
 const allKnownBoards = ref([]); 
 const selectedBoardFqbn = ref("arduino:avr:uno"); 
 
-// Refs de "Gamificación" (Robot)
-const assistantMessage = ref("¡Hola! Soy Mark. ¡Arrastra bloques para empezar!");
-const assistantMood = ref("normal"); // normal, happy, thinking, error
-
-// Audio Players
-const audioClick = new Audio(clickSound);
-const audioDelete = new Audio(deleteSound);
-
 let workspace = null;
 
-// --- COMPUTADA: FORMATO DE PUERTOS LIMPIO Y ROBUSTO ---
+// --- COMPUTADA: FORMATO DE PUERTOS ---
 const availablePorts = computed(() => {
     if (!rawPorts.value || !Array.isArray(rawPorts.value)) return [];
 
@@ -176,17 +235,15 @@ const availablePorts = computed(() => {
     }).filter(p => p !== null); 
 });
 
-// Helper para controlar al robot
-function setRobotStatus(msg, mood = 'normal') {
-    assistantMessage.value = msg;
-    assistantMood.value = mood;
-    // También guardamos en el log técnico por si acaso
-    outputLog.value += `\n[ROBOT]: ${msg}`;
-}
-
 async function refreshPorts() {
-  if (!window.api) return;
-  setRobotStatus("Buscando cables conectados...", "thinking");
+  isRefreshing.value = true;
+  if (!window.api) {
+      // Mock para desarrollo web si no hay API
+      setTimeout(() => { isRefreshing.value = false; }, 500);
+      return;
+  }
+  
+  outputLog.value += "\nBuscando puertos...";
   
   try {
     const ports = await window.api.listBoards(); 
@@ -197,24 +254,26 @@ async function refreshPorts() {
             if (!selectedPort.value) {
                 selectedPort.value = availablePorts.value[0].address;
             }
-            setRobotStatus(`¡Encontré ${availablePorts.value.length} placa(s)! Listo.`, "happy");
+            outputLog.value += `\nEncontrados: ${availablePorts.value.length}`;
         } else {
-            setRobotStatus("No veo ninguna placa. ¿Conectaste el USB?", "normal");
+            outputLog.value += "\nNo se encontraron puertos.";
         }
+        isRefreshing.value = false;
     }, 500);
     
   } catch (e) {
-    setRobotStatus("Error al buscar puertos.", "error");
-    outputLog.value += `\nError: ${e.message}`;
+    outputLog.value += `\nError al listar puertos: ${e.message}`;
+    isRefreshing.value = false;
   }
 }
 
 async function verifyCode() {
   if (isCompiling.value) return;
-  if (!window.api) { alert("Backend no conectado"); return; }
+  if (!window.api) { alert("Backend no conectado (Modo Diseño)"); return; }
 
   isCompiling.value = true;
-  setRobotStatus("Leyendo tus instrucciones...", "thinking");
+  showOutput.value = true;
+  outputLog.value = "Compilando tu código...\n";
   updateContent(); 
 
   try {
@@ -224,14 +283,8 @@ async function verifyCode() {
       sketchName: sketchName.value || 'Sketch'
     });
     outputLog.value += res.log;
-    
-    if (res.success) {
-        setRobotStatus("¡Código perfecto! Todo se ve bien.", "happy");
-    } else {
-        setRobotStatus("¡Ups! Algo está mal conectado en los bloques.", "error");
-    }
+    if (res.success) outputLog.value += "\n¡Todo listo! Tu código está perfecto.";
   } catch (e) {
-    setRobotStatus("Error grave del sistema.", "error");
     outputLog.value += "\nError crítico: " + e.message;
   } finally {
     isCompiling.value = false;
@@ -243,13 +296,13 @@ async function uploadCode() {
   if (!window.api) { alert("Backend no conectado"); return; }
   
   if (!selectedPort.value) {
-    setRobotStatus("¡Espera! Necesito saber el PUERTO USB.", "error");
-    alert("Por favor selecciona un PUERTO primero.");
+    alert("¡Espera! Necesitas seleccionar un puerto primero.");
     return;
   }
   
   isUploading.value = true;
-  setRobotStatus("¡Enviando poderes a la placa! ⚡", "thinking");
+  showOutput.value = true;
+  outputLog.value = `📤 Subiendo a ${selectedPort.value}...\n¡Preparando el despegue!\n`;
   updateContent();
   
   try {
@@ -260,13 +313,12 @@ async function uploadCode() {
     });
     
     if (!compileRes.success) {
-      outputLog.value += compileRes.log;
-      setRobotStatus("No puedo subirlo, hay errores en los bloques.", "error");
+      outputLog.value += compileRes.log + "\nSubida cancelada por error de compilación.";
       isUploading.value = false;
       return;
     }
 
-    setRobotStatus("Compilado OK. Subiendo...", "thinking");
+    outputLog.value += "\nCompilación OK. Subiendo...\n";
     
     const uploadRes = await window.api.upload({
       port: selectedPort.value,
@@ -275,14 +327,9 @@ async function uploadCode() {
     });
     
     outputLog.value += uploadRes.log;
-    if (uploadRes.success) {
-        setRobotStatus("¡ÉXITO! Tu robot tiene vida. 🚀", "happy");
-    } else {
-        setRobotStatus("Falló la subida. Revisa el cable.", "error");
-    }
+    if (uploadRes.success) outputLog.value += "\n¡SUBIDA COMPLETADA! Tu robot está vivo.";
   } catch (e) {
-    setRobotStatus("Error crítico en subida.", "error");
-    outputLog.value += "\nError crítico: " + e.message;
+    outputLog.value += "\nError crítico en subida: " + e.message;
   } finally {
     isUploading.value = false;
   }
@@ -292,22 +339,23 @@ async function installAvrCore() {
   if (isInstalling.value) return;
   if (!window.api) return;
 
-  if(!confirm("Esto descargará el soporte para Arduino. ¿Continuar?")) return;
+  if(!confirm("Esto descargará el soporte para Arduino Uno/Nano. ¿Continuar?")) return;
 
   isInstalling.value = true;
-  setRobotStatus("Descargando herramientas...", "thinking");
+  showOutput.value = true;
+  outputLog.value += "\nIniciando descarga de herramientas...\n";
   
   try {
     const res = await window.api.installCore('arduino:avr');
     outputLog.value += res.log;
     
     if (res.success) {
-        setRobotStatus("¡Instalación completada!", "happy");
+        outputLog.value += "\nHerramientas instaladas.";
         window.api.listAllBoards().then(data => {
             if(data && data.boards) allKnownBoards.value = data.boards;
         });
     } else {
-        setRobotStatus("Hubo un error instalando.", "error");
+        outputLog.value += "\nHubo un problema en la instalación.";
     }
   } catch (e) {
     outputLog.value += "\nError crítico: " + e.message;
@@ -316,22 +364,11 @@ async function installAvrCore() {
   }
 }
 
-async function openInArduino() {
-  setRobotStatus("Abriendo IDE avanzado...", "normal");
-  if(window.api) {
-      await window.api.openIde({
-          code: generatedCode.value, 
-          sketchName: sketchName.value || 'Sketch'
-      });
-  }
-}
-
 async function saveSketch() {
   if (window.api) {
     const result = await window.api.saveFile(generatedXml.value, sketchName.value);
     if(result.success) {
-        setRobotStatus("¡Proyecto guardado!", "happy");
-        outputLog.value += `\nGuardado en: ${result.path}`;
+        outputLog.value += `\nProyecto guardado en: ${result.path}`;
     }
   }
 }
@@ -344,12 +381,12 @@ async function loadSketch() {
         try {
             const xml = Blockly.utils.xml.textToDom(result.content);
             Blockly.Xml.domToWorkspace(xml, workspace);
-            setRobotStatus("¡Proyecto cargado!", "happy");
+            outputLog.value += "\nProyecto cargado exitosamente.";
             if(result.fileName) {
                 sketchName.value = result.fileName.replace(/\.[^/.]+$/, "");
             }
         } catch(e) {
-            setRobotStatus("No pude leer ese archivo.", "error");
+            outputLog.value += "\nError al abrir el archivo.";
             console.error(e);
         }
     }
@@ -357,22 +394,18 @@ async function loadSketch() {
 }
 
 function clearWorkspace() {
-    audioClick.play();
-    if(confirm("¿Estás seguro de borrar todos los bloques?")) {
+    if(confirm("¿Borrar todos los bloques y empezar de cero?")) {
         workspace.clear();
-        audioDelete.play(); // Sonido extra
         insertStartBlock();
-        setRobotStatus("Lienzo limpio. ¡A crear!", "normal");
+        outputLog.value += "\nWorkspace limpiado.";
     }
 }
 
-// =========================================================
-// DEFINICIÓN DE TOOLBOX (MENÚ LATERAL)
-// =========================================================
+// Toolbox definition
 const toolbox = {
   kind: 'categoryToolbox',
   contents: [
-    { kind: 'category', name: 'Variables', colour: '#FF6B6B', contents: [
+    { kind: 'category', name: 'Variables', colour: '#a855f7', contents: [ // Purple
       { kind: 'block', type: 'arduino_start' },
       { kind: 'button', text: 'Crear Variable', callbackKey: 'CREATE_VARIABLE' },
       { kind: 'block', type: 'variables_get' },
@@ -380,70 +413,51 @@ const toolbox = {
       { kind: 'block', type: 'variables_set_type' },
       { kind: 'block', type: 'type_cast' }
     ]},
-    { kind: 'category', name: 'Decisiones', colour: '#FFD93D', contents: [
+    { kind: 'category', name: 'Lógica', colour: '#3b82f6', contents: [ // Blue
       { kind: 'block', type: 'controls_if' },
       { kind: 'block', type: 'logic_compare' },
       { kind: 'block', type: 'logic_operation' },
       { kind: 'block', type: 'logic_boolean' },
-      { kind: 'block', type: 'logic_negate' },
-      { kind: 'block', type: 'logic_null' },
-      { kind: 'block', type: 'logic_ternary' }
+      { kind: 'block', type: 'logic_negate' }
     ]},
-    { kind: 'category', name: 'Repetir', colour: '#4D96FF', contents: [
+    { kind: 'category', name: 'Bucles', colour: '#10b981', contents: [ // Green
       { kind: 'block', type: 'controls_repeat_ext', inputs: { TIMES: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
       { kind: 'block', type: 'controls_whileUntil' },
-      { kind: 'block', type: 'controls_for', inputs: { FROM: { shadow: { type: 'math_number', fields: { NUM: 1 } } }, TO: { shadow: { type: 'math_number', fields: { NUM: 10 } } }, BY: { shadow: { type: 'math_number', fields: { NUM: 1 } } } } },
-      { kind: 'block', type: 'controls_flow_statements' }
+      { kind: 'block', type: 'controls_for', inputs: { FROM: { shadow: { type: 'math_number', fields: { NUM: 1 } } }, TO: { shadow: { type: 'math_number', fields: { NUM: 10 } } }, BY: { shadow: { type: 'math_number', fields: { NUM: 1 } } } } }
     ]},
-    { kind: 'category', name: 'Números', colour: '#6BCB77', contents: [
+    { kind: 'category', name: 'Matemáticas', colour: '#f59e0b', contents: [ // Amber
       { kind: 'block', type: 'math_number' },
       { kind: 'block', type: 'math_arithmetic' },
       { kind: 'block', type: 'math_random_int' },
-      { kind: 'block', type: 'math_map' },
-      { kind: 'block', type: 'math_single' },
-      { kind: 'block', type: 'math_trig' },
-      { kind: 'block', type: 'math_constant' },
-      { kind: 'block', type: 'math_number_property' },
-      { kind: 'block', type: 'math_round' },
-      { kind: 'block', type: 'math_modulo' },
-      { kind: 'block', type: 'math_constrain' }
+      { kind: 'block', type: 'math_map' }
     ]},
-    { kind: 'category', name: 'Texto', colour: '#A65C81', contents: [
+    { kind: 'category', name: 'Texto', colour: '#ec4899', contents: [ // Pink
       { kind: 'block', type: 'text' },
       { kind: 'block', type: 'text_print' },
-      { kind: 'block', type: 'text_join' },
-      { kind: 'block', type: 'text_append' },
-      { kind: 'block', type: 'text_length' },
-      { kind: 'block', type: 'text_isEmpty' }
+      { kind: 'block', type: 'text_join' }
     ]},
     { kind: 'sep' },
-    { kind: 'category', name: 'Pines I/O', colour: '#5C81A6', contents: [
+    { kind: 'category', name: 'Entrada/Salida', colour: '#6366f1', contents: [ // Indigo
       { kind: 'block', type: 'digital_write' },
       { kind: 'block', type: 'digital_read' },
       { kind: 'block', type: 'analog_read' },
       { kind: 'block', type: 'analog_write' },
       { kind: 'block', type: 'custom_delay' }
     ]},
-    { kind: 'category', name: 'Motores', colour: '#E67E22', contents: [
+    { kind: 'category', name: 'Motores', colour: '#ef4444', contents: [ // Red
       { kind: 'block', type: 'motor_setup' },
       { kind: 'block', type: 'motor_run' },
       { kind: 'block', type: 'motor_stop' }
     ]},
-    { kind: 'category', name: 'Pantalla 8x8', colour: '#D35400', contents: [
-      { kind: 'block', type: 'display_8x8_setup' },
-      { kind: 'block', type: 'display_8x8_draw' }
-    ]},
-    { kind: 'category', name: 'Sensores', colour: '#8E44AD', contents: [
+    { kind: 'category', name: 'Sensores', colour: '#8b5cf6', contents: [ // Violet
       { kind: 'block', type: 'ultrasonic_read' },
       { kind: 'block', type: 'color_sensor_read' },
       { kind: 'block', type: 'sound_sensor_read' }
     ]},
-    { kind: 'category', name: 'Wifi/BT', colour: '#2980B9', contents: [
+    { kind: 'category', name: 'Conexión', colour: '#06b6d4', contents: [ // Cyan
       { kind: 'block', type: 'wifi_connect' },
-      { kind: 'block', type: 'wifi_is_connected' },
       { kind: 'block', type: 'bluetooth_setup' },
       { kind: 'block', type: 'bluetooth_read_string' },
-      { kind: 'block', type: 'bluetooth_send_string' },
       { kind: 'block', type: 'rm_bluetooth_read' }
     ]}
   ]
@@ -471,6 +485,15 @@ function insertStartBlock() {
 }
 
 onMounted(async () => {
+    // Generar estrellas
+    stars.value = Array.from({ length: 25 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        delay: Math.random() * 5,
+        duration: 3 + Math.random() * 4
+    }));
+
   if (blocklyDiv.value) {
     workspace = Blockly.inject(blocklyDiv.value, {
       toolbox: toolbox,
@@ -480,12 +503,12 @@ onMounted(async () => {
       renderer: 'geras',
       theme: {
         'base': 'classic',
-        'fontStyle': { 'family': 'Fredoka One, sans-serif', 'weight': 'normal', 'size': 12 },
+        'fontStyle': { 'family': 'Segoe UI, sans-serif', 'weight': 'bold', 'size': 12 },
         'componentStyles': { 
-            'workspaceBackgroundColour': '#FFFFFF', 
-            'toolboxBackgroundColour': '#FFF4E0', 
-            'flyoutBackgroundColour': '#FFEacc',
-            'flyoutOpacity': 1
+            'workspaceBackgroundColour': 'transparent', 
+            'toolboxBackgroundColour': 'rgba(255, 255, 255, 0.5)', 
+            'flyoutBackgroundColour': 'rgba(255, 255, 255, 0.8)',
+            'scrollbarColour': '#a855f7'
         }
       }
     });
@@ -495,16 +518,13 @@ onMounted(async () => {
     });
     
     workspace.addChangeListener(updateContent);
-    // Sonido al mover bloques
-    workspace.addChangeListener((e) => {
-        if(e.type === Blockly.Events.BLOCK_MOVE && !e.oldParentId && e.newParentId) {
-            audioClick.play();
-        }
-    });
-
     window.addEventListener('resize', () => Blockly.svgResize(workspace));
     
-    insertStartBlock();
+    // Pequeño delay para asegurar que el DOM está listo antes de renderizar bloques
+    setTimeout(() => {
+        insertStartBlock();
+        Blockly.svgResize(workspace);
+    }, 100);
 
     await refreshPorts();
     
@@ -518,278 +538,426 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
-
-/* --- ESTILO CARTOON / KIDS --- */
+/* Root Variables */
 :root {
-    --bg-sunny: #FFFAE5;
-    --primary-blue: #4D96FF;
-    --primary-green: #6BCB77;
-    --primary-red: #FF6B6B;
-    --primary-yellow: #FFD93D;
-    --border-dark: #2C3E50;
-    --font-head: 'Fredoka One', cursive;
-    --font-body: 'Nunito', sans-serif;
+  --primary-purple: #a855f7;
+  --primary-pink: #ec4899;
+  --primary-blue: #3b82f6;
+  --bg-light: #faf5ff;
+  --shadow-light: rgba(255, 255, 255, 0.9);
+  --shadow-dark: rgba(190, 190, 220, 0.4);
 }
 
-.kids-layout {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    background-color: var(--bg-sunny);
-    font-family: var(--font-body);
-    color: var(--border-dark);
-    overflow: hidden;
+/* Main Container */
+.kids-ide-container {
+  position: relative;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #faf5ff 0%, #fce7f3 50%, #dbeafe 100%);
+  overflow: hidden;
+  font-family: 'Segoe UI', 'Comic Sans MS', sans-serif;
 }
 
-/* TOP BAR */
-.top-bar-kids {
-    background: #ffffff;
-    padding: 10px 20px;
+.stars-background {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.star {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #fbbf24;
+  border-radius: 50%;
+  animation: twinkle 3s ease-in-out infinite;
+  box-shadow: 0 0 10px #fbbf24;
+}
+
+.main-wrapper {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 16px;
+  gap: 16px;
+}
+
+/* Clay Morphism Styles */
+.clay-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 30px;
+  box-shadow: 
+    20px 20px 60px var(--shadow-dark),
+    -20px -20px 60px var(--shadow-light),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.5);
+  border: 3px solid rgba(255, 255, 255, 0.6);
+}
+
+.clay-card-inner {
+  background: rgba(240, 240, 255, 0.6);
+  border-radius: 20px;
+  box-shadow: 
+    inset 8px 8px 16px rgba(190, 190, 220, 0.3),
+    inset -8px -8px 16px rgba(255, 255, 255, 0.7);
+}
+
+.clay-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 20px;
+  border: none;
+  color: white;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 
+    8px 8px 16px rgba(0, 0, 0, 0.15),
+    -4px -4px 12px rgba(255, 255, 255, 0.7),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.clay-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 
+    12px 12px 24px rgba(0, 0, 0, 0.2),
+    -6px -6px 16px rgba(255, 255, 255, 0.8);
+}
+
+.clay-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 
+    4px 4px 8px rgba(0, 0, 0, 0.2),
+    inset 4px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.clay-btn:disabled {
+  opacity: 0.6;
+  filter: grayscale(0.8);
+  cursor: not-allowed;
+}
+
+.clay-btn-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  border: none;
+  color: white;
+  cursor: pointer;
+  box-shadow: 
+    8px 8px 16px rgba(0, 0, 0, 0.15),
+    -4px -4px 12px rgba(255, 255, 255, 0.7),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.clay-btn-icon:hover:not(:disabled) {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.clay-btn-icon:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #ccc !important;
+}
+
+.clay-select,
+.clay-input {
+  padding: 12px 16px;
+  border-radius: 18px;
+  border: 3px solid rgba(200, 200, 230, 0.5);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 
+    inset 6px 6px 12px rgba(200, 200, 230, 0.3),
+    inset -6px -6px 12px rgba(255, 255, 255, 0.9);
+  outline: none;
+  transition: all 0.3s ease;
+  font-weight: 700;
+  color: #4b5563;
+}
+
+.clay-select:focus,
+.clay-input:focus {
+  border-color: rgba(168, 85, 247, 0.6);
+  box-shadow: 
+    inset 8px 8px 16px rgba(168, 85, 247, 0.2),
+    inset -8px -8px 16px rgba(255, 255, 255, 0.9),
+    0 0 20px rgba(168, 85, 247, 0.3);
+}
+
+.clay-textarea {
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  border-radius: 18px;
+  border: 3px solid rgba(200, 200, 230, 0.5);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 
+    inset 6px 6px 12px rgba(200, 200, 230, 0.3),
+    inset -6px -6px 12px rgba(255, 255, 255, 0.9);
+  outline: none;
+  resize: none;
+  font-family: 'Consolas', monospace;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+/* Header */
+.clay-header {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 30px;
+  padding: 16px 20px;
+  box-shadow: 
+    20px 20px 60px var(--shadow-dark),
+    -20px -20px 60px var(--shadow-light);
+}
+
+.header-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.logo-container {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    border-bottom: 4px solid var(--border-dark);
-    box-shadow: 0 6px 0 rgba(0,0,0,0.1);
-    z-index: 100;
-    gap: 20px;
-}
-
-.brand-area {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.bouncy { animation: bounce 2s infinite; }
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-.app-logo { height: 50px; }
-
-.project-title-wrapper {
-    display: flex;
-    flex-direction: column;
-}
-
-.label-tiny {
-    font-size: 0.7rem;
-    font-weight: 900;
-    color: #95a5a6;
-    margin-left: 5px;
-}
-
-.kids-input-title {
-    background: #F3F4F6;
-    border: 3px solid var(--border-dark);
-    border-radius: 12px;
-    padding: 5px 10px;
-    font-family: var(--font-head);
-    font-size: 1.2rem;
-    color: var(--primary-blue);
-    width: 200px;
-    transition: transform 0.2s;
-}
-.kids-input-title:focus {
-    transform: scale(1.05);
-    outline: none;
-    border-color: var(--primary-blue);
-}
-
-/* HARDWARE CONTROLS */
-.hardware-island {
-    display: flex;
-    gap: 15px;
-    background: #EEE;
-    padding: 8px 15px;
-    border-radius: 15px;
-    border: 3px solid #DDD;
-}
-
-.select-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.icon-label { font-size: 1.5rem; }
-
-.kids-select {
-    appearance: none;
-    background: white;
-    border: 3px solid var(--border-dark);
-    border-radius: 10px;
-    padding: 8px 30px 8px 10px;
-    font-weight: 800;
-    font-family: var(--font-body);
-    cursor: pointer;
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
-}
-.kids-select:active { box-shadow: 2px 2px 0 rgba(0,0,0,0.2); transform: translate(2px, 2px); }
-
-.kids-btn-mini {
-    background: var(--primary-yellow);
-    border: 3px solid var(--border-dark);
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1.2rem;
-    padding: 5px;
-    box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
-    transition: all 0.2s;
-}
-.kids-btn-mini:active { transform: translate(3px, 3px); box-shadow: none; }
-.rotate-hover:hover { transform: rotate(180deg); }
-
-/* BIG ACTIONS */
-.big-actions {
-    display: flex;
-    gap: 15px;
-}
-
-.kids-big-btn {
-    border: 3px solid var(--border-dark);
-    border-radius: 15px;
-    padding: 10px 20px;
-    font-family: var(--font-head);
-    font-size: 1.1rem;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 6px 6px 0 rgba(0,0,0,0.2);
-    transition: all 0.1s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.kids-big-btn:hover { transform: translateY(-2px); box-shadow: 8px 8px 0 rgba(0,0,0,0.2); }
-.kids-big-btn:active { transform: translateY(4px); box-shadow: 0px 0px 0 rgba(0,0,0,0.2); }
-
-.btn-blue { background: var(--primary-blue); }
-.btn-green { background: var(--primary-green); }
-
-.spin { animation: spin 1s linear infinite; display: inline-block; }
-@keyframes spin { 100% { transform: rotate(360deg); } }
-
-/* MAIN STAGE */
-.main-stage {
-    display: flex;
-    flex: 1;
-    padding: 20px;
-    gap: 20px;
-    overflow: hidden;
-}
-
-.blockly-frame {
-    flex: 1;
-    background: white;
-    border: 4px solid var(--border-dark);
+    background: rgba(255,255,255,0.5);
+    padding: 5px 15px;
     border-radius: 20px;
-    box-shadow: 10px 10px 0 rgba(0,0,0,0.1);
-    overflow: hidden;
-    position: relative;
+    box-shadow: inset 4px 4px 8px rgba(0,0,0,0.05);
 }
 
-.blockly-canvas { width: 100%; height: 100%; }
-
-/* SIDEBAR TOOLS */
-.side-tools {
-    width: 300px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+.app-logo {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
 }
 
-/* ROBOT ASSISTANT */
-.robot-assistant {
-    background: white;
-    border: 4px solid var(--border-dark);
-    border-radius: 20px;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    box-shadow: 8px 8px 0 rgba(0,0,0,0.1);
-    transition: all 0.3s;
+.divider-logo {
+    color: #a855f7;
+    margin: 0 10px;
+    font-size: 20px;
+    opacity: 0.5;
 }
 
-.robot-assistant.error { background: #FFEEEE; border-color: var(--primary-red); }
-.robot-assistant.happy { background: #EEFFEE; border-color: var(--primary-green); }
-
-.robot-avatar { font-size: 4rem; animation: float 3s ease-in-out infinite; }
-@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
-.speech-bubble {
-    background: #f0f0f0;
-    border-radius: 15px;
-    padding: 15px;
-    margin-top: 10px;
-    position: relative;
-    border: 2px solid var(--border-dark);
-    font-weight: bold;
-    text-align: center;
-    width: 100%;
-}
-.speech-bubble:after {
-    content: ''; position: absolute; top: -10px; left: 50%;
-    border-width: 0 10px 10px; border-style: solid;
-    border-color: transparent transparent var(--border-dark) transparent;
+.logo-title {
+  font-size: 24px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
 }
 
-/* EXTRA ACTIONS GRID */
-.extra-actions-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+.logo-subtitle {
+  font-size: 12px;
+  color: #a855f7;
+  font-weight: 700;
+  margin: 0;
 }
 
-.kids-tool-btn {
-    border: 3px solid var(--border-dark);
-    border-radius: 12px;
-    padding: 15px;
-    font-size: 1.5rem;
-    cursor: pointer;
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
-    transition: transform 0.1s;
-    background: white;
+.hardware-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
 }
-.kids-tool-btn:active { transform: translate(4px, 4px); box-shadow: none; }
 
-.btn-yellow { background: var(--primary-yellow); }
-.btn-purple { background: #9B59B6; color: white; }
-.btn-orange { background: #E67E22; color: white; }
-.btn-red { background: #3498db; color: white; }
-.btn-danger-zone { background: var(--primary-red); color: white; }
+.board-select {
+  min-width: 140px;
+  color: #7c3aed;
+}
 
-/* CODE PREVIEW */
-.code-preview-card {
-    background: #34495E;
-    border-radius: 15px;
-    overflow: hidden;
-    border: 3px solid var(--border-dark);
-    flex-shrink: 0;
+.port-group {
+  display: flex;
+  gap: 8px;
 }
-.card-header {
-    background: #2C3E50;
-    color: white;
-    padding: 10px;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
+
+.port-select {
+  min-width: 120px;
+  color: #2563eb;
 }
-.code-content textarea {
-    width: 100%;
-    height: 150px;
-    background: #34495E;
-    color: #2ECC71;
-    border: none;
-    padding: 10px;
-    font-family: 'Courier New', monospace;
-    resize: none;
+
+.sketch-name {
+  text-align: center;
+  font-weight: 900;
+  color: #ec4899;
+  width: 140px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-verify { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.btn-upload { background: linear-gradient(135deg, #10b981, #059669); }
+.btn-refresh { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.btn-save { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+.btn-load { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.btn-delete { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.btn-extra { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+
+.divider {
+  width: 2px;
+  height: 32px;
+  background: rgba(200, 200, 230, 0.5);
+}
+
+.icon { width: 20px; height: 20px; }
+.icon-upload { transition: transform 0.3s ease; }
+.btn-upload:hover .icon-upload { transform: translateY(-4px); }
+.spinning { animation: spin 1s linear infinite; }
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.workspace-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px; /* Menos padding para más espacio de bloques */
+  overflow: hidden;
+}
+
+.blockly-area {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+}
+
+.tabs { display: flex; gap: 8px; margin-bottom: 8px; }
+.tab-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 20px; border-radius: 16px; border: none;
+  background: rgba(230, 230, 250, 0.6);
+  font-weight: 800; color: #6b7280; font-size: 14px;
+}
+.tab-btn.active {
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  color: white;
+  box-shadow: 4px 4px 10px rgba(168, 85, 247, 0.3);
+}
+.tab-icon { width: 18px; height: 18px; }
+
+.code-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.code-display { flex: 1; font-size: 12px; line-height: 1.4; }
+
+.output-section {
+  display: flex; flex-direction: column;
+  transition: all 0.3s ease; overflow: hidden;
+}
+.output-section.collapsed { max-height: 56px; }
+
+.output-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: transparent; border: none;
+  cursor: pointer; font-weight: 800; color: #7c3aed;
+  transition: color 0.3s ease; width: 100%;
+}
+.output-header:hover { color: #ec4899; }
+
+.header-left { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.header-icon { width: 20px; height: 20px; }
+.chevron { width: 20px; height: 20px; transition: transform 0.3s ease; }
+.chevron.rotated { transform: rotate(180deg); }
+
+.console-content {
+  flex: 1;
+  background: #1f2937;
+  border-radius: 16px;
+  margin: 0 12px 12px 12px;
+  padding: 16px;
+  overflow: auto;
+  position: relative;
+  max-height: 200px;
+  min-height: 150px;
+}
+
+.clear-btn {
+  position: absolute; top: 8px; right: 12px;
+  padding: 4px 8px; background: rgba(239, 68, 68, 0.2);
+  border: none; border-radius: 8px;
+  color: #f87171; font-size: 11px; font-weight: 700;
+  cursor: pointer;
+}
+.clear-btn:hover { background: rgba(239, 68, 68, 0.4); color: #fee2e2; }
+
+.console-text {
+  margin: 0; color: #10b981;
+  font-family: 'Consolas', monospace; font-size: 12px;
+  white-space: pre-wrap; padding-top: 20px;
+}
+
+/* Animations */
+@keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideLeft { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes bounce-gentle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.5); } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.animate-slideDown { animation: slideDown 0.6s ease-out; }
+.animate-slideUp { animation: slideUp 0.6s ease-out 0.2s both; }
+.animate-slideLeft { animation: slideLeft 0.6s ease-out 0.3s both; }
+.animate-bounce-gentle { animation: bounce-gentle 2s ease-in-out infinite; }
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .sidebar { width: 300px; }
+  .btn-text { display: none; }
+  .clay-btn { padding: 12px; }
+  .logo-title, .logo-subtitle { display: none; } /* Ocultar texto de logo en tablets */
+}
+
+@media (max-width: 768px) {
+  .main-content { flex-direction: column; }
+  .sidebar { width: 100%; max-height: 400px; }
+  .header-content { justify-content: center; }
+  .hardware-controls, .action-buttons { justify-content: center; width: 100%; }
+  .sketch-name { width: 100%; margin-top: 10px; order: -1; }
 }
 </style>
