@@ -1,5 +1,5 @@
 appId: com.m4rkrobot.ide
-productName: M4rkRobot IDE
+productName: M4rkRobotKIDS IDE
 directories:
   output: dist
   buildResources: resources
@@ -24,7 +24,7 @@ asarUnpack:
   - resources/**
 
 win:
-  executableName: MarkRobotIDE
+  executableName: MarkRobotKIDSIDE
   icon: resources/logo_m4rk.png
   target: nsis
   extraResources:
@@ -34,7 +34,7 @@ win:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  shortcutName: MarkRobot IDE
+  shortcutName: MarkRobotKIDS IDE
 
 mac:
   target: dmg
